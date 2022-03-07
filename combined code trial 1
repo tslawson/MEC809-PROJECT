@@ -1,0 +1,107 @@
+#include <Wire.h>
+#include <EVShield.h>
+#include <EVs_NXTTouch.h>
+
+EVShield          evshield(0x34,0x36);
+char str[200];
+
+void
+setup() 
+{
+    // MOTOR ENCODER FUNCTION BELOW
+    
+    Serial.begin(115200);       // start serial for output --> frequency 
+    delay(2000);                // wait two seconds, allowing time to
+                                // activate the serial monitor
+
+    long            rotations = 2;  // Define variable rotations and set equal to 90
+                                     
+    char            str[40];
+
+    evshield.init( SH_HardwareI2C );
+
+    //
+    // Wait until user presses GO button to continue the program
+    //
+    Serial.println ("Turn the motor shaft to see changing encoder values.");
+    Serial.println ("Press Left Arrow button to reset motor encoder.");
+    Serial.println ("---------------------------");
+    Serial.println ("Press GO button to continue");
+    Serial.println ("---------------------------");
+    while (!evshield.getButtonState(BTN_GO)) {
+        if (millis() % 1000 < 3) {
+            Serial.println("Press GO button to continue");
+        }
+    }
+
+    //
+    // reset motors.
+    //
+    evshield.bank_a.motorReset();
+    evshield.bank_b.motorReset();
+
+
+}
+
+int32_t  new_encoder1, new_encoder2;
+
+void
+loop()
+{
+    new_encoder2 = evshield.bank_a.motorGetEncoderPosition(SH_Motor_2);
+    new_encoder1 = evshield.bank_a.motorGetEncoderPosition(SH_Motor_1);
+    sprintf (str, "encoder values: 1) %ld, 2) %ld", new_encoder1, new_encoder2);
+    Serial.println (str);
+    if ( evshield.getButtonState(BTN_LEFT) == true ) {
+        Serial.println ("resetting encoders..");
+        evshield.bank_a.motorResetEncoder(SH_Motor_1);
+        evshield.bank_a.motorResetEncoder(SH_Motor_2);
+    }
+
+    delay(1000);
+}
+
+
+void loop()
+{
+  char aa[80];
+  int a;
+  char str[256];
+  bool touch_status;
+  bool last_status;
+
+  while (true) {  
+
+    //
+    //  run the motor if touch sensor is pressed.
+    //
+
+
+    a = touch1.readRaw();
+  
+
+    touch_status = touch1.isPressed();
+    sprintf (str, "touch1: is pressed : %s", touch_status?"true":"false");
+    Serial.println(str);
+    //if ( 1 ) {
+    if ( touch_status != last_status ) {
+      if ( touch_status ) {
+        Serial.println( "run unlimited" );
+        evshield.bank_b.motorRunUnlimited(SH_Motor_1, SH_Direction_Forward, 50);
+        evshield.bank_b.motorRunUnlimited(SH_Motor_2, SH_Direction_Forward, 50);
+        evshield.bank_a.motorRunUnlimited(SH_Motor_1, SH_Direction_Forward, 50);
+        evshield.bank_a.motorRunUnlimited(SH_Motor_2, SH_Direction_Forward, 50);
+      } else {
+        Serial.println( "stop (float)");
+        evshield.bank_b.motorStop(SH_Motor_1, SH_Next_Action_Float);
+        evshield.bank_b.motorStop(SH_Motor_2, SH_Next_Action_Float);
+        evshield.bank_a.motorStop(SH_Motor_1, SH_Next_Action_Float);
+        evshield.bank_a.motorStop(SH_Motor_2, SH_Next_Action_Float);
+      }
+      last_status = touch_status;
+    }
+
+    delay (500);
+  }
+}
+
